@@ -146,6 +146,15 @@ namespace CrawlerTest.Repository
         {
             var subNodes = div.Descendants("div");
             var subLinks = div.Descendants("a"); //picking anchorTags
+            var header = div.Element("header");
+            if (header != null)
+            {
+                var headerDivs = header.Descendants("div");
+                if (headerDivs != null)
+                {
+                    subNodes = subNodes.Concat(headerDivs);
+                }
+            }
             List<string> _subLinks = new List<string>();
              string value;
             if (subNodes != null && subLinks != null)
@@ -162,6 +171,18 @@ namespace CrawlerTest.Repository
                             {
                                 _siteUrls.Add(value);
                                 _subLinks.Add(value);
+                            }else if(!value.Contains("https") && value != "/")
+                            {
+                                if(value.IndexOf("/") == 0)
+                                {
+                                    int last = value.Length;
+                                    value = value.Substring(1, last-1);
+                                }
+                                if (!_siteUrls.Contains(baseUrl + value))
+                                {
+                                    _siteUrls.Add(baseUrl + value);
+                                    _subLinks.Add(baseUrl + value);
+                                }  
                             }
                         }
                     }
@@ -169,7 +190,7 @@ namespace CrawlerTest.Repository
                 }
                 foreach (var node in subNodes)
                 {
-                    Geturls(node, baseUrl);
+                    GetSuburls(node, baseUrl);
                 }
             }
             return _subLinks;
@@ -178,6 +199,7 @@ namespace CrawlerTest.Repository
         private void Geturls(HtmlNode div, string baseUrl)
         {
             var subNodes = div.Descendants("div");
+            
             var subLinks = div.Descendants("a"); //picking anchorTags
             string value;
             if (subNodes != null && subLinks != null)

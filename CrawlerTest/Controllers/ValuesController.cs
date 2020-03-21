@@ -21,7 +21,7 @@ namespace CrawlerTest.Controllers
         [HttpGet]
         public async Task<ActionResult> Get([FromQuery] string url)
         {       
-            if(url != ""){
+            if(url != null){
                 var response = await _ICrawler.startWithLanding(url);
                 return Ok(response);
             }else

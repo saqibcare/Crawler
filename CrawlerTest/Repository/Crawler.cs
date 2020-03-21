@@ -39,8 +39,11 @@ namespace CrawlerTest.Repository
         }
         public async Task<List<Page>> startWithLanding(string url)
         {
-            string baseurl = "https://arssoftwaresolutions.de/";
-            url = "https://arssoftwaresolutions.de/";
+            string baseurl = url;
+            if(url == "")
+            {
+                return pages;
+            }
 
             // Here i can also the conditions for robots.txt file, if the specific url is not allowed then skip it to crawl.
 

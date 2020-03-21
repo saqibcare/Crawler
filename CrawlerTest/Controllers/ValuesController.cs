@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CrawlerTest.Model;
 using CrawlerTest.Repository;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,9 +20,17 @@ namespace CrawlerTest.Controllers
         // GET api/values
         [HttpGet]
         public async Task<ActionResult> Get([FromQuery] string url)
-        {
-            var response = await _ICrawler.startWithLanding(url);
-            return Ok(response);
+        {       
+            if(url != ""){
+                var response = await _ICrawler.startWithLanding(url);
+                return Ok(response);
+            }else
+            {
+                return Ok("Please pass some url to crawl" );
+            }
+           
+            
+            return Ok(new ReturnModel{ Message =  });
         }
 
         // GET api/values/5

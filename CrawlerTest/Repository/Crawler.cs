@@ -104,13 +104,17 @@ namespace CrawlerTest.Repository
             
 
             // with the sub links of the current page, go deep into the tree.
-            foreach (var page in pageData.SubLinks)
+            if(pageData.SubLinks != null)
             {
-                if (RemoteFileExists(page))
+                foreach (var page in pageData.SubLinks)
                 {
-                    await getHtmlOfPage(page, baseurl);
+                    if (RemoteFileExists(page))
+                    {
+                        await getHtmlOfPage(page, baseurl);
+                    }
                 }
             }
+            
         }
 
 

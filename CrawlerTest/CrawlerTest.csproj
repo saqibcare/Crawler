@@ -14,6 +14,7 @@
   <ItemGroup>
     <Folder Include="CrawledFiles\" />
     <Folder Include="JsonFiles\" />
+    <Folder Include="Repository\" />
   </ItemGroup>
 
 </Project>

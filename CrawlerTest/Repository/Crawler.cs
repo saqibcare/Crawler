@@ -122,26 +122,25 @@ namespace CrawlerTest.Repository
         private string getFileName(string url, string baseurl)
         {
             string name;
-            if(url != baseurl)
+            string pattern = @"^((https|http|www)://)?(\w+).(de|com|ch|net)/(#)?";
+            string specialCharacterPattern = @"[\s-_#]+";
+            string subPage = @"(\w+)/(\w+)";
+            string removePage = @"(\w+)/";
+            if (Regex.IsMatch(url, pattern) && url != baseurl)
             {
-                name = Regex.Replace(url, baseurl, "");
+                name = Regex.Replace(url, pattern, "");
+                name = Regex.Replace(name, specialCharacterPattern, "");
+                if (Regex.IsMatch(name, subPage))
+                {
+                    name = Regex.Replace(name, removePage, "");
+
+                }
+                return name + ".html";
             }
             else
             {
-                name = Regex.Replace(url, "https://", "");
-                name = Regex.Replace(name, ".com", "");
-                name = Regex.Replace(name, ".de", "");
-                name = Regex.Replace(name, "[^\\w\\._]", "");
-                return name + ".html";
+                return "home.html";
             }
-            name = Regex.Replace(url, "https://", "");
-            name = Regex.Replace(name, ".com", "");
-            name = Regex.Replace(name, ".de", "");
-            name = Regex.Replace(url, "[^\\w\\._]", "");
-            name = name.Trim();
-            name = Regex.Replace(name, @"'[^']+'(?=!\w+)", string.Empty);
-            name = Regex.Replace(name, @"\\", "");
-            return name + ".html";
         }
 
         

@@ -9,6 +9,7 @@
     <PackageReference Include="HtmlAgilityPack" Version="1.11.22" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
     <PackageReference Include="Microsoft.AspNetCore.Razor.Design" Version="2.2.0" PrivateAssets="All" />
+    <PackageReference Include="RobotsTxt" Version="2014.2.19" />
   </ItemGroup>
 
   <ItemGroup>

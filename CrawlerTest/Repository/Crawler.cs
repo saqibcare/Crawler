@@ -11,15 +11,13 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Text.RegularExpressions;
+using RobotsTxt;
 
 namespace CrawlerTest.Repository
 {
     public interface ICrawler
     {
         Task<List<Page>> startWithLanding(string url);
-        bool RemoteFileExists(string url);
-
-        Task<bool> writeToFile(string name, string data);
     }
     public class Crawler : ICrawler
     {
@@ -28,7 +26,9 @@ namespace CrawlerTest.Repository
         private readonly string _jsonFolder;
         private List<Page> pages = new List<Page>();
         private List<string> _siteUrls = new List<string>();
-        
+        private List<string> _robotUrls = new List<string>();
+        private Robots robots;
+        private bool robotExits;
         private int fileName = 0;
         
         public Crawler(IHostingEnvironment environment)
@@ -39,9 +39,35 @@ namespace CrawlerTest.Repository
         }
         public async Task<List<Page>> startWithLanding(string url)
         {
+            string pattern = @"^((https|http|www)://)?(\w+).(de|com|ch|net)/$";
+            if (!Regex.IsMatch(url, pattern))
+            {
+                url = url + "/";
+            }
+
             string baseurl = url;
 
             // Here i can also the conditions for robots.txt file, if the specific url is not allowed then skip it to crawl.
+            string robotUrl = Path.Combine(url , "robots.txt");
+
+
+
+            if (RemoteFileExists(robotUrl))
+            {
+                robotExits = true;
+                HttpClient client = new HttpClient();
+                string result = await client.GetStringAsync(robotUrl);
+
+                robots = Robots.Load(result); // Parses the robots.txt file's content.
+                // You can also use the constructor. (eg: Robots robots = new Robots(content);)
+
+                // To check if the file allows you to request a path :
+                bool canIGoThere = robots.IsPathAllowed(".netApplication", robotUrl);
+            }
+            else
+            {
+                robotExits = false;
+            }
 
             // calling the landing page and then traverse
             await getHtmlOfPage(url, baseurl);
@@ -50,8 +76,6 @@ namespace CrawlerTest.Repository
             await writeJsonFile();
 
             return pages;
-
-
         }
 
 
@@ -125,16 +149,17 @@ namespace CrawlerTest.Repository
             string pattern = @"^((https|http|www)://)?(\w+).(de|com|ch|net)/(#)?";
             string specialCharacterPattern = @"[\s-_#]+";
             string subPage = @"(\w+)/(\w+)";
-            string removePage = @"(\w+)/";
+            string pickLast = @"(\w+/?)$";
             if (Regex.IsMatch(url, pattern) && url != baseurl)
             {
                 name = Regex.Replace(url, pattern, "");
                 name = Regex.Replace(name, specialCharacterPattern, "");
                 if (Regex.IsMatch(name, subPage))
                 {
-                    name = Regex.Replace(name, removePage, "");
-
+                   string unmached = Regex.Replace(name, pickLast, "");
+                   name = Regex.Replace(name, unmached, "");
                 }
+                name = Regex.Replace(name, @"/", "");
                 return name + ".html";
             }
             else
@@ -160,7 +185,7 @@ namespace CrawlerTest.Repository
             }
             List<string> _subLinks = new List<string>();
              string value;
-            if (subNodes != null && subLinks != null)
+            if (subLinks != null)
             {
                 foreach (var link in subLinks)
                 {
@@ -168,18 +193,20 @@ namespace CrawlerTest.Repository
                     if (attribute != null)
                     {
                         value = attribute.Value;
-                        if (!_siteUrls.Contains(value))         // overall preventing for getting the duplicate urls.
+                        if (!_siteUrls.Contains(value) && robotExits && robots.IsPathAllowed(".netApplication", value)
+                            || !_siteUrls.Contains(value) && !robotExits)         // overall preventing for getting the duplicate urls.
                         {
                             if (value.Contains(baseUrl))
                             {
                                 _siteUrls.Add(value);
                                 _subLinks.Add(value);
-                            }else if(!value.Contains("https") && value != "/")
+                            }else if(!Regex.IsMatch(value, @"^(http|https|www)") && !Regex.IsMatch(value , @"^/$") /*!value.Contains("https") && value != "/"*/ )
                             {
-                                if(value.IndexOf("/") == 0)
+                                if(Regex.IsMatch(value, @"^(/|#)")/*value.IndexOf("/") == 0*/)
                                 {
-                                    int last = value.Length;
-                                    value = value.Substring(1, last-1);
+                                    value = Regex.Replace(value, @"^(/|#)", "");
+                                    //int last = value.Length;
+                                    //value = value.Substring(1, last-1);
                                 }
                                 if (!_siteUrls.Contains(baseUrl + value))
                                 {
@@ -191,6 +218,9 @@ namespace CrawlerTest.Repository
                     }
 
                 }
+            }
+            if(subNodes != null)
+            {
                 foreach (var node in subNodes)
                 {
                     GetSuburls(node, baseUrl);
@@ -199,40 +229,9 @@ namespace CrawlerTest.Repository
             return _subLinks;
         }
 
-        private void Geturls(HtmlNode div, string baseUrl)
-        {
-            var subNodes = div.Descendants("div");
-            
-            var subLinks = div.Descendants("a"); //picking anchorTags
-            string value;
-            if (subNodes != null && subLinks != null)
-            {
-                foreach (var link in subLinks)
-                {
-                    var attribute = link.ChildAttributes("href").FirstOrDefault();
-                    if (attribute != null)
-                    {
-                        value = attribute.Value;
-                        if (!_siteUrls.Contains(value))
-                        {
-                            if (value.Contains(baseUrl))
-                            {
-                                _siteUrls.Add(value);
-                            }
-                        }
-                    }
-
-                }
-                foreach (var node in subNodes)
-                {
-                    Geturls(node, baseUrl);
-                }
-            }
-        }
-
 
         // check if the url has some response, sometimes some urls are not working
-        public bool RemoteFileExists(string url)
+        private bool RemoteFileExists(string url)
         {
             try
             {
@@ -268,7 +267,7 @@ namespace CrawlerTest.Repository
 
 
         // write to the file in static folder
-        public async Task<bool> writeToFile(string name, string data)
+        private async Task<bool> writeToFile(string name, string data)
         {
             var rootPath = _environment.ContentRootPath;
             var filepath = Path.Combine(rootPath, _folder);
